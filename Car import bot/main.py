@@ -14,8 +14,8 @@ from telebot import types
 # ===== НАЛАШТУВАННЯ =====
 import os
 
-BOT_TOKEN     = os.environ.get("BOT_TOKEN")
-ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID")
+BOT_TOKEN     = os.environ.get("8432056343:AAG8blNTpl7FUNetimzfAELPp_oDMPaTjyQ")
+ADMIN_CHAT_ID = os.environ.get("5554286686")
 
 if not BOT_TOKEN:
     raise RuntimeError("❌ Змінна середовища BOT_TOKEN не задана!")
