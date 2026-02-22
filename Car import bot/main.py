@@ -5,16 +5,27 @@ Telegram-бот для розрахунку вартості авто з США
 Запуск: python car_import_bot.py
 """
 
-import telebot
-from telebot import types
+import os
 import logging
 import datetime
+import telebot
+from telebot import types
 
 # ===== НАЛАШТУВАННЯ =====
-BOT_TOKEN    = "8432056343:AAG8blNTpl7FUNetimzfAELPp_oDMPaTjyQ"   # Отримати у @BotFather
-ADMIN_CHAT_ID = "5554286686"     # ID адміністратора
+import os
 
-logging.basicConfig(level=logging.INFO)
+BOT_TOKEN     = os.environ.get("BOT_TOKEN")
+ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID")
+
+if not BOT_TOKEN:
+    raise RuntimeError("❌ Змінна середовища BOT_TOKEN не задана!")
+if not ADMIN_CHAT_ID:
+    raise RuntimeError("❌ Змінна середовища ADMIN_CHAT_ID не задана!")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # ===== КУРСИ ВАЛЮТ (оновлювати вручну або підключити API) =====
@@ -353,9 +364,9 @@ def handle_text(message):
     # --- Очікування контакту ---
     if step == "waiting_contact":
         bot.send_message(uid,
-                         "Натисніть кнопку *«📞 Надіслати мій номер»* нижче\n"
-                         "або *«❌ Скасувати»* для відміни.",
-                         parse_mode="Markdown", reply_markup=contact_keyboard())
+            "Натисніть кнопку *«📞 Надіслати мій номер»* нижче\n"
+            "або *«❌ Скасувати»* для відміни.",
+            parse_mode="Markdown", reply_markup=contact_keyboard())
         return
 
     # --- Завершено ---
@@ -386,8 +397,8 @@ def handle_text(message):
             auto_fee = get_auction_fee(user_data[uid]["car_price"])
             user_data[uid]["auction_fee"] = auto_fee
             bot.send_message(uid,
-                             f"✅ Аукціонний збір: *{auto_fee} USD* (за таблицею Copart/IAAI)",
-                             parse_mode="Markdown")
+                f"✅ Аукціонний збір: *{auto_fee} USD* (за таблицею Copart/IAAI)",
+                parse_mode="Markdown")
         else:
             user_data[uid]["auction_fee"] = value
         user_data[uid]["step"] = "delivery_usa"
@@ -458,9 +469,9 @@ def handle_contact(message):
 
     user_data[uid]["step"] = "finished"
     bot.send_message(uid,
-                     "✅ *Заявку надіслано!*\n\nМенеджер зв'яжеться з вами найближчим часом. 🤝\n\n"
-                     "Натисніть /start для нового розрахунку.",
-                     parse_mode="Markdown", reply_markup=remove_keyboard())
+        "✅ *Заявку надіслано!*\n\nМенеджер зв'яжеться з вами найближчим часом. 🤝\n\n"
+        "Натисніть /start для нового розрахунку.",
+        parse_mode="Markdown", reply_markup=remove_keyboard())
 
 
 # ===== ВИВІД РЕЗУЛЬТАТУ =====
@@ -543,8 +554,8 @@ def handle_callback(call):
     if call.data == "restart":
         user_data[uid] = {"step": "country"}
         bot.send_message(uid,
-                         "🔄 *Новий розрахунок*\n\n" + STEP_QUESTIONS["country"],
-                         parse_mode="Markdown", reply_markup=country_keyboard())
+            "🔄 *Новий розрахунок*\n\n" + STEP_QUESTIONS["country"],
+            parse_mode="Markdown", reply_markup=country_keyboard())
 
     elif call.data == "request":
         if user_data.get(uid, {}).get("step") == "finished":
@@ -553,11 +564,17 @@ def handle_callback(call):
             return
         user_data.setdefault(uid, {})["step"] = "waiting_contact"
         bot.send_message(uid,
-                         "📞 Надішліть ваш *номер телефону* для зв'язку.\nНатисніть кнопку нижче 👇",
-                         parse_mode="Markdown", reply_markup=contact_keyboard())
+            "📞 Надішліть ваш *номер телефону* для зв'язку.\nНатисніть кнопку нижче 👇",
+            parse_mode="Markdown", reply_markup=contact_keyboard())
 
 
 # ===== ЗАПУСК =====
 if __name__ == "__main__":
-    print("✅ Бот запущено...")
-    bot.infinity_polling()
+    logging.info("✅ Бот запущено...")
+    while True:
+        try:
+            bot.infinity_polling(timeout=30, long_polling_timeout=20)
+        except Exception as e:
+            logging.error(f"Polling впав: {e}. Перезапуск через 5 сек...")
+            import time
+            time.sleep(5)
